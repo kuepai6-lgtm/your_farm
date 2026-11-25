@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DYFA Catfish Farm – Manajemen Peternakan Lele</title>
+<style>
+:root{--navy:#123a6b;--cyan:#1bb3d6;--green:#4caf50;--bg:#f2f8fb;--card:#fff;--text:#14283d;--mute:#5d7487;--line:#dbe8ef;--bad:#d64545;--good:#2e9d4f;--chip:#e6f4f9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--navy:#7fb4ee;--bg:#0c1822;--card:#142533;--text:#e6f0f7;--mute:#92a9ba;--line:#243b4d;--chip:#193244;--bad:#ff7a7a;--good:#6fd48c}}
+:root[data-theme="dark"]{color-scheme:dark;--navy:#7fb4ee;--bg:#0c1822;--card:#142533;--text:#e6f0f7;--mute:#92a9ba;--line:#243b4d;--chip:#193244;--bad:#ff7a7a;--good:#6fd48c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:linear-gradient(120deg,#123a6b,#1bb3d6);color:#fff;padding:14px 16px}
+.wrap{max-width:1000px;margin:0 auto}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.brand{font-size:26px;font-weight:800;letter-spacing:-1px}.brand small{font-size:12px;font-weight:600;letter-spacing:1.5px;margin-left:8px;opacity:.9;text-transform:uppercase}
+.brand i{color:#9be37f;font-style:normal}
+.role select{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:8px;padding:6px 8px;font:inherit}
+.role select option{color:#14283d}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;max-width:1000px;margin:0 auto}
+nav button{border:0;background:var(--chip);color:var(--navy);padding:8px 14px;border-radius:999px;font:inherit;font-weight:600;white-space:nowrap;cursor:pointer}
+nav button.on{background:var(--navy);color:var(--bg)}
+main{max-width:1000px;margin:0 auto;padding:4px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+h2{margin:0 0 12px;font-size:18px;color:var(--navy)}h3{margin:0 0 8px;font-size:16px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.stats{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat span{display:block;font-size:12px;color:var(--mute)}.stat b{font-size:18px}
+.row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}.row:last-child{border:0}
+.row span{color:var(--mute)}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);font-weight:600}
+input,select{font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);width:100%}
+input:focus,select:focus{outline:2px solid var(--cyan);border-color:transparent}
+.btn{border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--green);color:#fff}
+.btn.alt{background:var(--navy);color:var(--bg)}.btn.sm{padding:4px 10px;font-size:12px}.btn.del{background:var(--bad)}
+.full{grid-column:1/-1}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mute);font-size:12px;text-transform:uppercase}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.note{font-size:13px;color:var(--mute)}
+.tag{background:var(--chip);color:var(--navy);padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;transition:.3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><div class="wrap top">
+<div class="brand">dyfa<i>.</i><small>Catfish Farm</small></div>
+<label class="role" style="color:#fff">Peran
+<select id="role"><option value="admin">Admin / Pemilik</option><option value="keeper">Penjaga Kolam</option></select></label>
+</div></header>
+<nav id="nav"></nav>
+<main id="view"></main>
+<div id="toast"></div>
+<script>
+const KEY='dyfa_farm_v1';
+const $=s=>document.querySelector(s);
+const today=()=>new Date().toISOString().slice(0,10);
+const rp=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
+const kg=n=>(Math.round((n||0)*10)/10).toLocaleString('id-ID')+' kg';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+let S={ponds:[],tx:[],role:'admin'},tab='input';
+
+function load(){try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+ if(!S.ponds.length&&!S.tx.length&&!S.seeded){
+  S.ponds=[{id:'p1',name:'Kolam A1',date:dAgo(60),seed:5000},{id:'p2',name:'Kolam A2',date:dAgo(45),seed:4000},{id:'p3',name:'Kolam B1',date:dAgo(20),seed:3000}];
+  S.tx=[
+   {id:'t1',date:dAgo(30),pond:'p1',type:'konsumsi',cat:'pakan',qty:120,amount:1560000,note:'Pelet 781'},
+   {id:'t2',date:dAgo(10),pond:'p1',type:'konsumsi',cat:'vitamin',qty:0,amount:150000,note:''},
+   {id:'t3',date:dAgo(2),pond:'p1',type:'penjualan',cat:'panen',qty:300,amount:300*24000,note:'Panen sebagian'},
+   {id:'t4',date:dAgo(12),pond:'p2',type:'konsumsi',cat:'pakan',qty:90,amount:1170000,note:''},
+   {id:'t5',date:dAgo(5),pond:'p3',type:'konsumsi',cat:'operasional',qty:0,amount:200000,note:'Listrik pompa'}];
+  S.seeded=true;save()}
+ if(S.role!=='admin'&&S.role!=='keeper')S.role='admin'}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
+const isAdmin=()=>S.role==='admin';
+const pname=id=>(S.ponds.find(p=>p.id===id)||{name:'(dihapus)'}).name;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+
+function stats(p){
+ const t=S.tx.filter(x=>x.pond===p.id);
+ const pakan=t.filter(x=>x.cat==='pakan').reduce((a,x)=>a+x.qty,0);
+ const cost=t.filter(x=>x.type==='konsumsi').reduce((a,x)=>a+x.amount,0);
+ const sales=t.filter(x=>x.type==='penjualan').reduce((a,x)=>a+x.amount,0);
+ const panen=t.filter(x=>x.type==='penjualan').reduce((a,x)=>a+x.qty,0);
+ return{pakan,cost,sales,panen,profit:sales-cost,fcr:panen?pakan/panen:null,umur:Math.max(0,Math.floor((Date.now()-new Date(p.date))/864e5))}}
+
+function renderNav(){
+ const tabs=isAdmin()?[['laporan','Laporan'],['kolam','Kolam'],['input','Input Transaksi'],['riwayat','Riwayat']]:[['input','Input Pakan'],['riwayat','Riwayat Pakan']];
+ if(!tabs.some(t=>t[0]===tab))tab=tabs[0][0];
+ $('#nav').innerHTML=tabs.map(t=>`<button data-act="tab" data-v="${t[0]}" class="${t[0]===tab?'on':''}">${t[1]}</button>`).join('')}
+
+function render(){
+ $('#role').value=S.role;renderNav();
+ const v=$('#view');
+ if(tab==='laporan')v.innerHTML=vLaporan();
+ else if(tab==='kolam')v.innerHTML=vKolam();
+ else if(tab==='input'){v.innerHTML=vInput();updForm()}
+ else v.innerHTML=vRiwayat()}
+
+function vLaporan(){
+ if(!S.ponds.length)return '<div class="card">Belum ada kolam. Tambahkan di tab Kolam.</div>';
+ const all=S.ponds.map(p=>({p,s:stats(p)}));
+ const T=all.reduce((a,{s})=>({cost:a.cost+s.cost,sales:a.sales+s.sales,pakan:a.pakan+s.pakan}),{cost:0,sales:0,pakan:0});
+ const pr=T.sales-T.cost;
+ return `<div class="bar"><button class="btn alt" data-act="csvReport">⬇ Ekspor Laporan (CSV/Excel)</button><button class="btn alt" data-act="csvTx">⬇ Ekspor Transaksi</button></div>
+ <div class="stats">
+ <div class="stat"><span>Total Pengeluaran</span><b>${rp(T.cost)}</b></div>
+ <div class="stat"><span>Total Penjualan</span><b>${rp(T.sales)}</b></div>
+ <div class="stat"><span>Pakan Terpakai</span><b>${kg(T.pakan)}</b></div>
+ <div class="stat"><span>Untung / Rugi</span><b class="${pr>=0?'pos':'neg'}">${rp(pr)}</b></div></div>
+ <div class="grid">${all.map(({p,s})=>`<div class="card"><h3>${esc(p.name)} <span class="tag">${s.umur} hari</span></h3>
+ <div class="row"><span>Tebar bibit</span><b>${p.date} · ${p.seed.toLocaleString('id-ID')} ekor</b></div>
+ <div class="row"><span>Pakan terpakai</span><b>${kg(s.pakan)}</b></div>
+ <div class="row"><span>Total pengeluaran</span><b>${rp(s.cost)}</b></div>
+ <div class="row"><span>Hasil panen terjual</span><b>${kg(s.panen)}</b></div>
+ <div class="row"><span>Total penjualan</span><b>${rp(s.sales)}</b></div>
+ <div class="row"><span>FCR (pakan/panen)</span><b>${s.fcr===null?'-':s.fcr.toFixed(2)}</b></div>
+ <div class="row"><span>Untung / Rugi</span><b class="${s.profit>=0?'pos':'neg'}">${rp(s.profit)}</b></div></div>`).join('')}</div>`}
+
+function vKolam(){
+ return `<div class="card"><h2>Tambah Kolam</h2><form id="fPond">
+ <label>Nama kolam<input name="name" required placeholder="Kolam C1"></label>
+ <label>Tanggal tebar bibit<input type="date" name="date" required value="${today()}"></label>
+ <label>Jumlah bibit awal (ekor)<input type="number" name="seed" min="1" required></label>
+ <div class="full"><button class="btn">Simpan Kolam</button></div></form></div>
+ <div class="card"><h2>Daftar Kolam</h2><div class="tw"><table><tr><th>Nama</th><th>Tgl Tebar</th><th>Umur</th><th>Bibit Awal</th><th></th></tr>
+ ${S.ponds.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${p.date}</td><td>${stats(p).umur} hari</td><td>${p.seed.toLocaleString('id-ID')} ekor</td><td><button class="btn sm del" data-act="delPond" data-id="${p.id}">Hapus</button></td></tr>`).join('')||'<tr><td colspan="5">Belum ada kolam.</td></tr>'}</table></div></div>`}
+
+function vInput(){
+ if(!S.ponds.length)return '<div class="card">Belum ada kolam. '+(isAdmin()?'Tambahkan dulu di tab Kolam.':'Minta pemilik menambahkan kolam.')+'</div>';
+ const a=isAdmin();
+ return `<div class="card"><h2>${a?'Input Transaksi Harian':'Input Pakan Harian'}</h2><form id="fTx">
+ ${a?`<label>Jenis<select name="type" id="fType"><option value="konsumsi">Konsumsi (pengeluaran)</option><option value="penjualan">Penjualan (panen)</option></select></label>
+ <label id="lCat">Kategori<select name="cat" id="fCat"><option value="pakan">Pakan</option><option value="vitamin">Vitamin / Obat</option><option value="operasional">Biaya operasional</option></select></label>`:'<input type="hidden" name="type" value="konsumsi"><input type="hidden" name="cat" id="fCat" value="pakan">'}
+ <label>Kolam<select name="pond" required>${S.ponds.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
+ <label>Tanggal<input type="date" name="date" value="${today()}" required></label>
+ <label id="lQty"><span id="tQty">Jumlah pakan (kg)</span><input type="number" name="qty" step="0.1" min="0" id="fQty"></label>
+ ${a?`<label id="lAmt"><span id="tAmt">Total biaya (Rp)</span><input type="number" name="amt" min="0" id="fAmt"></label>`:''}
+ <label class="full">Catatan<input name="note" placeholder="Opsional"></label>
+ <div class="full"><button class="btn">Simpan</button>${a?'':'<span class="note"> Harga pakan akan diisi oleh pemilik.</span>'}</div></form></div>`}
+
+function updForm(){
+ if(!$('#fTx')||!isAdmin())return;
+ const type=$('#fType').value,cat=$('#fCat').value;
+ $('#lCat').style.display=type==='konsumsi'?'':'none';
+ const pen=type==='penjualan';
+ $('#lQty').style.display=(pen||cat==='pakan')?'':'none';
+ $('#fQty').required=pen||cat==='pakan';
+ $('#tQty').textContent=pen?'Hasil panen (kg)':'Jumlah pakan (kg)';
+ $('#tAmt').textContent=pen?'Harga per kg (Rp)':'Total biaya (Rp)';
+ $('#fAmt').required=true}
+
+function vRiwayat(){
+ const a=isAdmin();
+ const list=S.tx.filter(x=>a||x.cat==='pakan').sort((x,y)=>y.date.localeCompare(x.date));
+ const catL={pakan:'Pakan',vitamin:'Vitamin/Obat',operasional:'Operasional',panen:'Panen'};
+ return `<div class="card"><h2>${a?'Riwayat Transaksi':'Riwayat Pakan'}</h2>
+ ${a?'<div class="bar"><button class="btn alt" data-act="csvTx">⬇ Ekspor CSV/Excel</button></div>':''}
+ <div class="tw"><table><tr><th>Tanggal</th><th>Kolam</th>${a?'<th>Jenis</th>':''}<th>Kategori</th><th>Jumlah</th>${a?'<th>Nilai</th>':''}<th>Catatan</th>${a?'<th></th>':''}</tr>
+ ${list.map(x=>`<tr><td>${x.date}</td><td>${esc(pname(x.pond))}</td>${a?`<td>${x.type==='penjualan'?'Penjualan':'Konsumsi'}</td>`:''}<td>${catL[x.cat]||x.cat}</td><td>${x.qty?kg(x.qty):'-'}</td>${a?`<td class="${x.type==='penjualan'?'pos':''}">${x.amount?rp(x.amount):'<span class="neg">belum ada harga</span>'}</td>`:''}<td>${esc(x.note)}</td>${a?`<td>${x.type==='konsumsi'&&!x.amount?`<button class="btn sm" data-act="setPrice" data-id="${x.id}">Isi harga</button> `:''}<button class="btn sm del" data-act="delTx" data-id="${x.id}">Hapus</button></td>`:''}</tr>`).join('')||`<tr><td colspan="8">Belum ada data.</td></tr>`}</table></div></div>`}
+
+function csv(name,rows){
+ const body=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+ const b=new Blob(['\ufeff'+body],{type:'text/csv;charset=utf-8'});
+ const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name+'-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);toast('File diunduh')}
+
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
+ if(a==='tab'){tab=b.dataset.v;render()}
+ else if(a==='delPond'){if(confirm('Hapus kolam beserta seluruh transaksinya?')){S.ponds=S.ponds.filter(p=>p.id!==id);S.tx=S.tx.filter(t=>t.pond!==id);save();render()}}
+ else if(a==='delTx'){if(confirm('Hapus transaksi ini?')){S.tx=S.tx.filter(t=>t.id!==id);save();render()}}
+ else if(a==='setPrice'){const v=prompt('Total biaya (Rp):');const n=Number(v);if(v&&n>=0){S.tx.find(t=>t.id===id).amount=n;save();render()}}
+ else if(a==='csvReport'){csv('laporan-kolam',[['Kolam','Tgl Tebar','Bibit Awal','Umur (hari)','Pakan (kg)','Pengeluaran (Rp)','Panen Terjual (kg)','Penjualan (Rp)','FCR','Untung/Rugi (Rp)']].concat(S.ponds.map(p=>{const s=stats(p);return[p.name,p.date,p.seed,s.umur,s.pakan,s.cost,s.panen,s.sales,s.fcr===null?'':s.fcr.toFixed(2),s.profit]})))}
+ else if(a==='csvTx'){csv('transaksi',[['Tanggal','Kolam','Jenis','Kategori','Jumlah (kg)','Nilai (Rp)','Catatan']].concat(S.tx.slice().sort((x,y)=>x.date.localeCompare(y.date)).map(x=>[x.date,pname(x.pond),x.type,x.cat,x.qty||'',x.amount,x.note])))}});
+
+document.addEventListener('change',e=>{if(e.target.id==='fType'||e.target.id==='fCat')updForm();if(e.target.id==='role'){S.role=e.target.value;save();render()}});
+
+document.addEventListener('submit',e=>{
+ e.preventDefault();const f=Object.fromEntries(new FormData(e.target));
+ if(e.target.id==='fPond'){S.ponds.push({id:uid(),name:f.name.trim(),date:f.date,seed:Number(f.seed)});save();toast('Kolam ditambahkan');render()}
+ else if(e.target.id==='fTx'){
+  const adm=isAdmin(),type=adm?f.type:'konsumsi';
+  const cat=type==='penjualan'?'panen':(adm?f.cat:'pakan');
+  const needQty=type==='penjualan'||cat==='pakan';
+  const qty=needQty?Number(f.qty||0):0;
+  const v=Number(f.amt||0);
+  const amount=!adm?0:(type==='penjualan'?qty*v:v);
+  S.tx.push({id:uid(),date:f.date,pond:f.pond,type,cat,qty,amount,note:(f.note||'').trim(),by:S.role});
+  save();toast('Tersimpan ✓');render()}});
+
+load();render();
+</script>
+</body>
+</html>
